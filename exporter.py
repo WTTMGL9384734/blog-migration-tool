@@ -22,7 +22,7 @@ SESSION = requests.Session()
 SESSION.headers.update({'User-Agent': UA})
 MAX_BYTES = 12 * 1024 * 1024
 MAX_TOTAL_MEDIA = 120 * 1024 * 1024
-MAX_MEDIA_FILES = 300
+MAX_MEDIA_FILES = 1000
 
 class ExportError(Exception): pass
 
@@ -238,7 +238,7 @@ def export_site(url,max_posts=100,include_media=True,report=lambda *_:None):
     for p in posts:
         if len(text_html(p['body']))<100: warnings.append(f"Short content: {p['title']} ({p['url']})")
     media=media_urls(posts)
-    if len(media)==MAX_MEDIA_FILES: warnings.append('Media capped at 300 files.')
+    if len(media)==MAX_MEDIA_FILES: warnings.append('Media capped at 1000 files.')
     xml=wxr(posts,media,origin)
     ET.fromstring(xml)
     report(f'Created XML with {len(posts)} posts and {len(media)} attachment records',.7)
