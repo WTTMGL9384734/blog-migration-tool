@@ -1,4 +1,4 @@
-"""Two-stage WordPress WXR workflow. Public destination REST API verification only."""
+"""Two-stage WXR export with optional manual Toggle verification."""
 import datetime as dt
 import email.utils
 import io
@@ -121,7 +121,7 @@ def posts_xml(bundle,mapping,destination):
         add(item,'post_date_gmt',p['date'].astimezone(dt.timezone.utc).strftime('%Y-%m-%d %H:%M:%S') if p['date'].tzinfo else p['date'].strftime('%Y-%m-%d %H:%M:%S'),'wp')
         for k,v in [('post_name',p['slug']),('status','publish'),('post_type','post'),('post_parent','0'),('comment_status','closed'),('ping_status','closed'),('is_sticky','0')]: add(item,k,v,'wp')
         if p['featured']:
-            if p['featured'] not in mapping: raise ExportError('Unverified featured image: '+p['featured'])
-            meta=add(item,'postmeta','','wp');add(meta,'meta_key','_thumbnail_id','wp')
-            add(meta,'meta_value',mapping[p['featured']]['id'],'wp')
+            if p['featured'] in mapping and mapping[p['featured']].get('id'):
+                meta=add(item,'postmeta','','wp');add(meta,'meta_key','_thumbnail_id','wp')
+                add(meta,'meta_value',mapping[p['featured']]['id'],'wp')
     return ET.tostring(rss,encoding='utf-8',xml_declaration=True)
