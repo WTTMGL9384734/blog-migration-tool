@@ -4,7 +4,7 @@ from staged import discover, media_xml, backup_zip, destination_media, match_med
 
 st.set_page_config(page_title='Blog Migration Tool',page_icon='📦')
 st.title('Blog Migration Tool')
-st.caption('Media first, verify in Toggle, then export posts. WordPress-compatible sites only.')
+st.caption('Media first, verify in Toggle, then export posts. Toggle import behavior must be tested independently.')
 st.info('Media XML does not embed image files. Import it while the original site is online and select “Download and import file attachments.”')
 
 def report(message,fraction=None):
@@ -15,7 +15,7 @@ with st.form('source'):
     maximum=st.number_input('Maximum posts',1,300,100)
     start=st.form_submit_button('1. Scan blog and prepare media',type='primary')
 if start:
-    for k in ('bundle','media_zip','verified','destination','mapping'): st.session_state.pop(k,None)
+    for k in ('bundle','media_zip','verified','destination','mapping','verification_mode'): st.session_state.pop(k,None)
     try:
         with st.spinner('Discovering posts and images...'):
             bundle=discover(source,int(maximum),report)
@@ -46,6 +46,7 @@ if 'bundle' in st.session_state:
         verify=st.form_submit_button('Verify media import')
     if verify:
         st.session_state.pop('verified',None)
+        st.session_state.pop('verification_mode',None)
         if not confirmed:st.error('Confirm the media import first.')
         else:
             try:
@@ -57,16 +58,42 @@ if 'bundle' in st.session_state:
                 if ambiguous:st.error(f'{len(ambiguous)} ambiguous filenames: '+', '.join(ambiguous[:8]))
                 if not missing and not ambiguous:
                     st.session_state.verified=True
+                    st.session_state.verification_mode='automatic'
                     st.session_state.mapping=mapping
                     st.session_state.destination=destination
                     st.success('All expected media filenames matched unique destination attachments. Check the images visually before import.')
             except (ExportError,ValueError) as exc:st.error(str(exc))
+    st.markdown('#### Manual verification override (Toggle)')
+    st.warning('Use this when Toggle does not expose a public media API. This does not prove that every file imported or identify Toggle attachment IDs. Unmapped inline images may still link to the original website.')
+    with st.form('manual_verify'):
+        manual_destination=st.text_input('Toggle destination URL for manual verification',key='manual_destination',placeholder='https://client.brightervisionpreview.com/')
+        manual_confirm=st.checkbox('I checked the imported files in Toggle Media Library and reviewed failed imports.')
+        manual_risk=st.checkbox('I understand that unmatched images will retain their source URLs and featured-image IDs cannot be reconstructed automatically.')
+        manual_submit=st.form_submit_button('Continue with manual verification override')
+    if manual_submit:
+        try:
+            from exporter import checked_url
+            safe_url=checked_url(manual_destination.strip())
+            if not (manual_confirm and manual_risk):
+                st.error('Both confirmations are required.')
+            else:
+                st.session_state.verified=True
+                st.session_state.verification_mode='manual'
+                st.session_state.mapping={}
+                st.session_state.destination=safe_url
+                st.success('Manual override enabled. Posts XML will be generated without assumed Toggle attachment IDs.')
+        except (ExportError,ValueError) as exc:st.error(str(exc))
     st.subheader('Step 3: Export posts')
     if st.session_state.get('verified'):
-        st.warning('Featured-image IDs use existing Toggle Media Library IDs. Verify one test post first: some WordPress importers do not preserve direct _thumbnail_id metadata.')
+        if st.session_state.get('verification_mode')=='manual':
+            st.error('Manual override: the Posts XML cannot rewrite image URLs or assign featured images without a Toggle media mapping. Existing source URLs will remain in post content. Do not take the source site offline until these are corrected and verified.')
+            st.write('Known media URLs requiring review:',len(bundle['media']))
+            st.download_button('Download media review list', '\n'.join(bundle['media']), 'media-review.txt', 'text/plain')
+        else:
+            st.warning('Featured-image IDs are derived from WordPress-style API records. Toggle may use different IDs. Verify a test post before relying on featured images.')
         xml=posts_xml(bundle,st.session_state.mapping,st.session_state.destination)
         st.download_button('Download Posts XML',xml,'posts.xml','application/xml',type='primary')
     else:st.caption('Locked until all media is verified.')
 
 st.divider()
-st.caption('Prototype: public WordPress Media API is required for verification. Filename matching cannot prove image binary identity. No credentials are collected or stored.')
+st.caption('Prototype: Toggle manual verification is available when the WordPress-style API is unavailable. Manual override is not a media integrity check. No credentials are collected or stored.')
