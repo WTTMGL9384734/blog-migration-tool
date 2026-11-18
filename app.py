@@ -8,7 +8,7 @@ st.caption('One complete Toggle-compatible WXR XML containing blog posts and med
 st.write('Enter the source blog URL, scan its posts, and download one XML file for import into Toggle. No separate media import, verification, or mapping steps.')
 with st.form('scan'):
     source=st.text_input('Source blog URL',placeholder='https://example.com/blog/')
-    maximum=st.number_input('Maximum posts',min_value=1,max_value=300,value=100)
+    maximum=st.number_input('Maximum posts',min_value=1,max_value=500,value=500)
     submit=st.form_submit_button('Generate Complete Blog XML',type='primary')
 if submit:
     st.session_state.pop('export',None)
