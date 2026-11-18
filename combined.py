@@ -37,7 +37,7 @@ def collect(source, maximum, report=lambda *_: None):
         aliases[url]=key
         if key not in seen:
             media.append(key);seen.add(key)
-    if len(raw)>=300: raise ExportError('Media discovery reached its 300-file limit. Reduce the post count to avoid incomplete exports.')
+    if len(raw)>1000: raise ExportError('Media discovery exceeded the 1000-file limit. Reduce the post count to avoid incomplete exports.')
     return {'source':source,'posts':posts,'media':media,'aliases':aliases,'method':method}
 
 def create_xml(bundle):
