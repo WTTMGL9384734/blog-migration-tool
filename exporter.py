@@ -22,7 +22,7 @@ SESSION = requests.Session()
 SESSION.headers.update({'User-Agent': UA})
 MAX_BYTES = 12 * 1024 * 1024
 MAX_TOTAL_MEDIA = 120 * 1024 * 1024
-MAX_MEDIA_FILES = 1000
+MAX_MEDIA_FILES = 1500
 
 class ExportError(Exception): pass
 
@@ -180,7 +180,7 @@ def html_posts(base,max_posts,report):
     if not posts: raise ExportError('Found links, but could not extract complete posts.')
     return posts
 
-def media_urls(posts):
+def media_urls(posts, limit=MAX_MEDIA_FILES):
     urls={}
     for p in posts:
         if p['featured']: urls[p['featured']]=None
@@ -191,7 +191,7 @@ def media_urls(posts):
             if not val or not val.startswith(('http://','https://')): continue
             if tag.name!='a' or urlparse(val).path.lower().endswith(('.jpg','.jpeg','.png','.gif','.webp','.svg','.pdf','.mp4','.mp3')):
                 urls[val]=None
-    return list(urls)[:MAX_MEDIA_FILES]
+    return list(urls)[:limit]
 
 def add(parent,tag,value='',namespace=None,**attrs):
     name=f'{{{NS[namespace]}}}{tag}' if namespace else tag
@@ -238,7 +238,7 @@ def export_site(url,max_posts=100,include_media=True,report=lambda *_:None):
     for p in posts:
         if len(text_html(p['body']))<100: warnings.append(f"Short content: {p['title']} ({p['url']})")
     media=media_urls(posts)
-    if len(media)==MAX_MEDIA_FILES: warnings.append('Media capped at 1000 files.')
+    if len(media)==MAX_MEDIA_FILES: warnings.append('Media capped at 1500 files.')
     xml=wxr(posts,media,origin)
     ET.fromstring(xml)
     report(f'Created XML with {len(posts)} posts and {len(media)} attachment records',.7)
