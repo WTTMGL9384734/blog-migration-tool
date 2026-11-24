@@ -30,14 +30,14 @@ def collect(source, maximum, report=lambda *_: None):
         method='HTML archive fallback'
         posts=html_posts(source,maximum,report)
     if not posts: raise ExportError('No posts found.')
-    raw=media_urls(posts)
+    raw=media_urls(posts, limit=None)
     media=[]; seen=set(); aliases={}
     for url in raw:
         key=canonical(url)
         aliases[url]=key
         if key not in seen:
             media.append(key);seen.add(key)
-    if len(raw)>1000: raise ExportError('Media discovery exceeded the 1000-file limit. Reduce the post count to avoid incomplete exports.')
+    if len(media)>maximum: raise ExportError(f'Media discovery found {len(media)} unique files, exceeding the selected limit of {maximum}. Increase the limit or scan a smaller source.')
     return {'source':source,'posts':posts,'media':media,'aliases':aliases,'method':method}
 
 def create_xml(bundle):
